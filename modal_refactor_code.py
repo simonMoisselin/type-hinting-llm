@@ -151,6 +151,8 @@ def get_functions(source_code: str, model_name:str):
     missing_functions = find_missing_type_hints(source_code)
     missing_functions = [x['name'] for x in missing_functions if x['args_missing_types']]
     print(f"missing_functions: {missing_functions}")
+    if len(missing_functions) == 0:
+        return {"functions": []}
     prompt = prompt_format.format(code=source_code, missing_functions=missing_functions)
     messages = get_messages(system_content, prompt)
 
