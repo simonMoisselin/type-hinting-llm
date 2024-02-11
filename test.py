@@ -1,9 +1,8 @@
-from modal_refactor_code import FunctionTransformer
 import ast
 import unittest
+from typing import Dict, List, Optional, Tuple
 
-
-from typing import List, Tuple, Dict, Optional
+from modal_refactor_code import FunctionTransformer
 
 test_cases = [
     # Function with a List Default Value
@@ -96,11 +95,27 @@ def process_args_kwargs(*args: int, **kwargs: str) -> List[int]:
             'docstring': 'This function processes args and kwargs.'
         }
     },
+    {
+    "source_code": """
+def func_without_defaults(a: int, b: str) -> None:
+    pass
+""",
+    "expected_code": """
+def updated_func_without_defaults(a: int, b: str) -> None:
+    \"\"\"This function is an example with no default values.\"\"\"
+    pass
+""",
+    "transformation": {
+        'original_name': 'func_without_defaults',
+        'new_name': 'updated_func_without_defaults',
+        'arguments': ["a: int", "b: str"],  # Note: Arguments without default values
+        'docstring': 'This function is an example with no default values.'
+    }
+}
 ]
 
 
 import ast
-
 
 # More test methods can be added here to cover different scenarios
 
