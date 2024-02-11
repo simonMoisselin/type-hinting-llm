@@ -8,8 +8,12 @@ import modal
 import openai
 from modal import Stub, web_endpoint
 
+
+
 image = modal.Image.debian_slim().pip_install("openai", "black", "autoflake", "isort")
+
 APP_NAME = "refactor_code_v1"
+
 stub = modal.Stub(APP_NAME, image=image)
 vol = modal.Volume.persisted("cache-gpt")
 
@@ -23,27 +27,75 @@ def get_messages(system_content: str, prompt: str):
 
 
 prompt_format = "\nHelp refactor this code:\n{code}\n"
-system_content = '\nYour goal is to help refactoring some code. You will receive a python file, the goal is to have type hinting in all methods (functions and class sub methods). Your goal is to only add the missing type hintings args. If the new types you added required new imports, add them to `imports` in the response.\nThe answer will be in the following JSON format:\n{"functions": [{name: "function_or_submethod_name",  args: ["arg_1:int", "arg_2:type_arg_2, ...], ...], "imports": "imports needed for the new imports"}\n\n- Do not return existing functions if they are already typed. Only return functions that needs to be typed. REALLY IMPORTANT.\n- Do not forget to add typing for the methods for each class (can have multiple methods per class), by using this syntax: name: Classname.method_name, ..., only if typing is not here yet of course.\n,'
+prompt_format = """
+Help for hint typing on this code:
+{code}
+
+Here are the functions that are missing type hinting and that you should be returning:
+{missing_functions}
+"""
+system_content = '\nYour goal is to help refactoring some code. You will receive a python file, and a list of functions to update. Your goal is to add type hint informations from those functions. If the new types you added required new imports, add them to `imports` in the response.\nThe answer will be in the following JSON format:\n{ "functions": [{name: "function_or_submethod_name",  args: ["arg_1:int", "arg_2:type_arg_2, ...], ...], "imports": "imports needed for the new imports"}\n If the function is a class method, the first argument is always self or cls, and should not be specified in the type hinting'
 import ast
 import logging
 
 
+
+class TypeHintChecker(ast.NodeVisitor):
+    def __init__(self):
+        super().__init__()
+        self.missing_type_hints = []
+        self.current_class_name = None  # Track the current class context
+
+    def visit_ClassDef(self, node):
+        # Store the class name when entering a class definition
+        self.current_class_name = node.name
+        self.generic_visit(node)  # Visit all nodes within the class
+        self.current_class_name = None  # Reset the class name after leaving the class definition
+
+    def visit_FunctionDef(self, node):
+        is_class_method = any(arg.arg in ['self', 'cls'] for arg in node.args.args[:1])
+        start_index = 1 if is_class_method else 0
+        
+        func_name = node.name
+        # Prepend class name to method names if within a class context
+        full_name = f"{self.current_class_name}.{func_name}" if self.current_class_name else func_name
+
+        args_missing_types = [arg.arg for arg in node.args.args[start_index:] if not arg.annotation]
+        return_missing_type = not isinstance(node.returns, ast.AST)
+
+        if args_missing_types or return_missing_type:
+            self.missing_type_hints.append({
+                'name': full_name,
+                'args_missing_types': args_missing_types,
+                'return_missing_type': return_missing_type
+        })
+
+        self.generic_visit(node)
+
+
+
+def find_missing_type_hints(source_code):
+    tree = ast.parse(source_code)
+    checker = TypeHintChecker()
+    checker.visit(tree)
+    return checker.missing_type_hints
+
 class FunctionTransformer(ast.NodeTransformer):
 
-    def __init__(self, transformations: list):
+    def __init__(self, transformations):
         super().__init__()
         self.transformations = {t["name"]: t for t in transformations}
         self.current_class_name = None
         logging.debug("FunctionTransformer initialized with transformations.")
 
-    def visit_ClassDef(self, node: ast.ClassDef):
+    def visit_ClassDef(self, node):
         previous_class_name = self.current_class_name
         self.current_class_name = node.name
         self.generic_visit(node)
         self.current_class_name = previous_class_name
         return node
 
-    def visit_FunctionDef(self, node: ast.FunctionDef):
+    def visit_FunctionDef(self, node):
         full_name = (
             f"{self.current_class_name}.{node.name}"
             if self.current_class_name
@@ -94,19 +146,31 @@ class FunctionTransformer(ast.NodeTransformer):
         return self.generic_visit(node)
 
 
-def get_functions(source_code: str):
-    prompt = prompt_format.format(code=source_code)
+
+def get_functions(source_code: str, model_name:str):
+    missing_functions = find_missing_type_hints(source_code)
+    missing_functions = [x['name'] for x in missing_functions if x['args_missing_types']]
+    print(f"missing_functions: {missing_functions}")
+    prompt = prompt_format.format(code=source_code, missing_functions=missing_functions)
     messages = get_messages(system_content, prompt)
-    model_name = "gpt-3.5-turbo-0125"
-    model_name = "gpt-4-0125-preview"
+
     response = openai.chat.completions.create(
         messages=messages,
         response_format={"type": "json_object"},
         model=model_name,
-        max_tokens=512,
+        max_tokens=1024,
+        temperature=0,
+        seed=42,
     )
     data: str = response.choices[0].message.content
-    return json.loads(data)
+    from ast import literal_eval
+    try:
+        return literal_eval(data)
+    except Exception as e:
+        print(f"Error parsing response from OpenAI: {data}")
+        raise e
+
+
 
 
 def get_updated_source_code(source_code: str, functions: list):
@@ -120,11 +184,11 @@ def get_updated_source_code(source_code: str, functions: list):
 @stub.function(
     secrets=[modal.Secret.from_name("simon-openai-secrets")], volumes={"/data": vol}
 )
-def refactor_code(source_code: str):
+def refactor_code(source_code: str, model_name: str):
     import time
 
     current_time = time.time()
-    result = get_functions(source_code)
+    result = get_functions(source_code, model_name)
     elapsed_time_seconds = time.time() - current_time
     print(f"Elapsed time: {elapsed_time_seconds} seconds")
     functions = result["functions"]
@@ -158,7 +222,8 @@ def reformat_code(code: str) -> str:
 @web_endpoint(method="POST")
 def refactor_code_web(item: Dict):
     source_code: str = item["source_code"]
-    (refactored_code, functions) = refactor_code.local(source_code)
+    model_name = item.get("model_name", "gpt-4-0125-preview")
+    (refactored_code, functions) = refactor_code.local(source_code, model_name)
     reformatted_code = reformat_code(refactored_code)
     filename_with_date = (
         "refactored_code_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".py"

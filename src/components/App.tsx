@@ -10,6 +10,10 @@ import './App.css'
 const startCode = `def add(a, b):
   return a + b`
 
+const MODELS = {
+  GPT3: 'gpt-3.5-turbo-0125',
+  GPT4: 'gpt-4-0125-preview'
+}
 function App() {
   const [code, setCode] = useState(startCode)
   const [isRefactoring, setIsRefactoring] = useState(false)
@@ -31,7 +35,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ source_code: code })
+        body: JSON.stringify({ source_code: code, model_name: MODELS.GPT3 })
       }
     )
       .then((res) => res.json())
@@ -113,19 +117,29 @@ function App() {
           {refactoringTime ? (
             <p>Refactoring Time: {refactoringTime.toFixed(2)} seconds</p>
           ) : null}
-
-          {analysis.functions.length ? (
-            <div>
-              {/* tailwind css */}
-              <h2
-                className="
+          <h2
+            className="
                 text-2xl
                 font-bold
                 text-gray-800
               "
-              >
-                Functions
-              </h2>
+          >
+            Functions Modified
+          </h2>
+          {analysis.functions.length ? (
+            <div
+              className="
+                max-h-96
+                w-full
+                overflow-y-auto
+                rounded
+                bg-gray-200
+                p-4
+                text-lg
+                text-gray-800
+            "
+            >
+              {/* tailwind css */}
               <ul
                 className="
                 text-gray-700 
@@ -140,7 +154,7 @@ function App() {
                     "
                     key={func.name}
                   >
-                    {func.name}({func.args.join(', ')})
+                    {func.name}({func.args?.join(', ')})
                   </li>
                 ))}
               </ul>
