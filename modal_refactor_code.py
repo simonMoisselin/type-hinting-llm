@@ -1,5 +1,6 @@
 import ast
 import json
+import logging
 from typing import Dict
 
 import modal
@@ -32,52 +33,67 @@ Help refactor this code:
 system_content = """
 Your goal is to help refactoring some code. You will receive a python file, and your goal is, for each function, add a docstring to explain what this is doing, add typing into the arguments, find a better name for the function. Also I want to know a score for the complexity of the function, and a score for the readability of the function, named complexity_score and readability_score. (between 0 and 1)
 The answer will be in the following JSON format:
-{"refactored_functions": [{original_name: "function_name", docstring: "the docstring", arguments: "the arguments with typing", new_name: "the new name if changing", complexity_score: 0.5, readability_score: 0.5}, ...]}
+{"refactored_functions": [{original_name: "function_name", docstring: "the docstring", arguments: {"arg_1": str,...}, new_name: "the new name if changing", complexity_score: 0.5, readability_score: 0.5}, ...]}
 """
 
 import ast
+import logging
 
+# Ensure logging is configured in your script
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 class FunctionTransformer(ast.NodeTransformer):
     def __init__(self, transformations):
         super().__init__()
         self.transformations = {t['original_name']: t for t in transformations}
+        logging.debug("FunctionTransformer initialized with transformations.")
 
     def visit_FunctionDef(self, node):
+        logging.info(f"Visiting function definition: {node.name}")
         transformation = self.transformations.get(node.name)
         if transformation:
+            logging.info(f"Found transformation for function: {node.name}")
             node.name = transformation['new_name']
             transformed_args = []
 
             for arg_transformation in transformation['arguments']:
                 try:
-                    parts = arg_transformation.split(':', 2)
+                    parts = arg_transformation.split(':', 2)  # Attempt to split into at most 3 parts
                     if len(parts) == 3:
                         arg_name, arg_type, default_value = parts
-                        default_ast = ast.parse(default_value.strip(), mode='eval').body
+                        try:
+                            default_ast = ast.parse(default_value.strip(), mode='eval').body
+                        except SyntaxError as e:
+                            logging.error(f"Syntax error parsing default value for argument '{arg_name}': {e}")
+                            raise ValueError(f"Syntax error in default value: '{default_value}'")
                     elif len(parts) == 2:
                         arg_name, arg_type = parts
                         default_ast = None
                     else:
-                        print(f"Skipping invalid argument transformation: '{arg_transformation}'")
-                        continue
+                        logging.error(f"Invalid argument format encountered: '{arg_transformation}'")
+                        print(transformation)
+                        raise ValueError(f"Invalid argument format: '{arg_transformation}'")
 
                     arg_node = ast.arg(arg=arg_name.strip(), annotation=ast.parse(arg_type.strip(), mode='eval').body)
                     transformed_args.append(arg_node)
                     if default_ast:
                         node.args.defaults.append(default_ast)
-
-                except Exception as e:
-                    print(f"Error processing argument '{arg_transformation}': {e}")
-                    continue
+                except ValueError as e:
+                    logging.error(f"Error processing argument '{arg_transformation}': {e}")
+                    raise
 
             node.args.args = transformed_args
 
             docstring = ast.Expr(value=ast.Constant(value=transformation['docstring']))
             node.body.insert(0, docstring)
 
+            logging.debug(f"Transformation applied successfully to function: {transformation['new_name']}")
             return node
+        else:
+            logging.debug(f"No transformation found for function: {node.name}")
         return node
+
+
 
 
 def get_refactored_functions(source_code):
@@ -105,8 +121,10 @@ def get_updated_source_code(source_code, refactored_functions):
 @stub.function(secrets=[modal.Secret.from_name("simon-openai-secrets")], volumes={"/data": vol})
 def refactor_code(source_code: str):
     refactored_functions = get_refactored_functions(source_code)
+    print(f"refactored_functions:\n{refactored_functions}")
     new_source_code = get_updated_source_code(source_code, refactored_functions)
     return new_source_code, refactored_functions
+
 
 def reformat_code(code: str) -> str:
     import black
