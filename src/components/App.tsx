@@ -25,7 +25,7 @@ function App() {
     const startTime = performance.now() // Capture start time
 
     fetch(
-      'https://simonmoisselin--refactor-code-v0-refactor-code-web.modal.run',
+      'https://simonmoisselin--refactor-code-v1-refactor-code-web.modal.run',
       {
         method: 'POST',
         headers: {
@@ -76,7 +76,7 @@ function App() {
         Code Refactoring: Python
       </header>
       <div className="flex grow overflow-hidden">
-        <div className="w-4/5">
+        <div className="w-3/5">
           <CodeMirror
             extensions={[python()]}
             value={code}
@@ -87,7 +87,7 @@ function App() {
             className="size-full"
           />
         </div>
-        <div className="flex w-1/5 flex-col items-center justify-start space-y-4 bg-gray-100 p-4">
+        <div className="flex w-2/5 flex-col items-center justify-start space-y-4 bg-gray-100 p-4">
           <button
             onClick={handleRefactorClick}
             className={`btn rounded bg-blue-500 px-4 py-2 font-bold text-white transition-colors duration-300 ease-in-out hover:bg-blue-700 ${
