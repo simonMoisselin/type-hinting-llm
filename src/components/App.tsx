@@ -8,17 +8,15 @@ import './App.css'
 function App() {
   const [code, setCode] = useState('# Enter your Python code here')
   const [isRefactoring, setIsRefactoring] = useState(false)
-  const [refactoredFunctions, setRefactoredFunctions] = useState([])
-  const complexity_score =
-    refactoredFunctions.length &&
-    refactoredFunctions
-      .map((f) => f.complexity_score)
-      .reduce((a, b) => a + b, 0) / refactoredFunctions.length
-  const readability_score =
-    refactoredFunctions.length &&
-    refactoredFunctions
-      .map((f) => f.readability_score)
-      .reduce((a, b) => a + b, 0) / refactoredFunctions.length
+
+  const [analysis, setAnalysis] = useState({
+    reformated_code: '',
+    refactored_functions: [],
+    complexity_score: 0,
+    readability_score: 0
+  })
+  const complexity_score = analysis.complexity_score
+  const readability_score = analysis.readability_score
 
   const handleRefactorClick = () => {
     // Implement your refactor logic here
@@ -37,7 +35,7 @@ function App() {
       .then((res) => res.json())
       .then((data) => {
         setCode(data.reformated_code)
-        setRefactoredFunctions(data.refactored_functions)
+        setAnalysis(data)
         setIsRefactoring(false) // Unset loading state
       })
       .catch((err) => {
@@ -98,7 +96,7 @@ function App() {
             }`}
             disabled={isRefactoring}
           >
-            {isRefactoring ? 'Refactoring...' : 'Refactor'}
+            {isRefactoring ? 'Refactoring...' : 'Add Type Hinting'}
           </button>
           <button
             onClick={handleCopyClick}
