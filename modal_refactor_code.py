@@ -33,6 +33,8 @@ system_content = """
 Your goal is to help refactoring some code. You will receive a python file, and your goal is, for each function, add typing into the args. If the new types you added required new imports, add them to `imports` in the response.
 The answer will be in the following JSON format:
 {"functions": [{name: "function_name",  args: ["arg_1:int", "arg_2:type_arg_2, ...], "imports": "imports needed for the new imports"}
+
+- If a function is already typed, you can skip it, and not define it in the response.
 """
 
 # {'functions': [{'name': 'add', 'args': {'a': 'int', 'b': 'int'}}], 'imports': ''}
@@ -82,9 +84,12 @@ def get_functions(source_code):
     messages = get_messages(system_content, prompt)
     model_name = "gpt-4-0125-preview"
     model_name = "gpt-3.5-turbo-0125"
-    response = openai.chat.completions.create(messages=messages, response_format={"type": "json_object"}, model=model_name, max_tokens=1024)
+
+    response = openai.chat.completions.create(messages=messages, response_format={"type": "json_object"}, model=model_name, max_tokens=512)
     data: str = response.choices[0].message.content
     return json.loads(data)
+
+    
 
 def get_updated_source_code(source_code, functions):
     # Parse the source code into an AST
