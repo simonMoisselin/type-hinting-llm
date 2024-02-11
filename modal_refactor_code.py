@@ -7,7 +7,7 @@ import modal
 import openai
 from modal import Stub, web_endpoint
 
-image = modal.Image.debian_slim().pip_install("openai", "black")
+image = modal.Image.debian_slim().pip_install("openai", "black", "autoflake", "isort")
 
 APP_NAME = "refactor_code_v0"
 stub = modal.Stub(APP_NAME, image=image)
@@ -31,7 +31,7 @@ Help refactor this code:
 {code}
 """
 system_content = """
-Your goal is to help refactoring some code. You will receive a python file, and your goal is, for each function, add typing into the arguments. Also I want to know a score for the complexity of the function, and a score for the readability of the overal code, named complexity_score and readability_score. (between 0 and 1). Don't forget to return the code needed to make is work, (from typing import xxx, or others), and put empty if not needed.
+Your goal is to help refactoring some code. You will receive a python file, and your goal is, for each function, add typing into the arguments. Also I want to know a score for the complexity of the function, and a score for the readability of the overal code, named complexity_score and readability_score. (between 0 and 1). Don't forget to return the code needed to make the type hinting works, nothing more (from typing import .. , )
 The answer will be in the following JSON format:
 {"refactored_functions": [{name: "function_name",  arguments: {"arg_1": str,...}}, ...], complexity_score: 0.5, readability_score: 0.5, "import_code": "imports needed for the refactored code"}
 """
@@ -124,6 +124,7 @@ def refactor_code(source_code: str):
 def reformat_code(code: str) -> str:
     import black
     from black import FileMode
+    from isort import code as isort_code
 
     """
     Reformats the given Python code using the black library.
@@ -137,7 +138,8 @@ def reformat_code(code: str) -> str:
     try:
         # Use black to format the code. FileMode() specifies file-specific options.
         formatted_code = black.format_str(code, mode=FileMode())
-        return formatted_code
+        sorted_code = isort_code(formatted_code)
+        return sorted_code
     except Exception as e:
         print(e)
         return code  # Return the original code if no changes are made
