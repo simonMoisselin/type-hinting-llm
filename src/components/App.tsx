@@ -99,29 +99,6 @@ function App() {
           >
             Copy
           </button>
-          <div className="flex flex-col items-center justify-start space-y-4 bg-gray-100 p-4">
-            <h2 className="text-lg font-semibold">Refactoring Scores</h2>
-            <div className="w-full text-center">
-              <span className="font-medium">Complexity Score: </span>
-              <span
-                className={`font-semibold ${
-                  complexity_score <= 0.5 ? 'text-green-600' : 'text-red-600'
-                }`}
-              >
-                {complexity_score.toFixed(2)}
-              </span>
-            </div>
-            <div className="w-full text-center">
-              <span className="font-medium">Readability Score: </span>
-              <span
-                className={`font-semibold ${
-                  readability_score >= 0.5 ? 'text-green-600' : 'text-red-600'
-                }`}
-              >
-                {readability_score.toFixed(2)}
-              </span>
-            </div>
-          </div>
         </div>
       </div>
     </div>

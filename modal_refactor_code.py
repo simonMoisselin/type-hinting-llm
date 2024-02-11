@@ -15,7 +15,6 @@ stub = modal.Stub(APP_NAME, image=image)
 
 
 
-
 vol = modal.Volume.persisted("cache-gpt")
 def get_messages(system_content: str, prompt: str):
     messages = [
@@ -31,9 +30,9 @@ Help refactor this code:
 {code}
 """
 system_content = """
-Your goal is to help refactoring some code. You will receive a python file, and your goal is, for each function, add typing into the arguments. Also I want to know a score for the complexity of the function, and a score for the readability of the overal code, named complexity_score and readability_score. (between 0 and 1). Don't forget to return the code needed to make the type hinting works, nothing more (from typing import .. , )
+Your goal is to help refactoring some code. You will receive a python file, and your goal is, for each function, add typing into the arguments. Don't forget to return the code needed to make the type hinting like List, Dict works, nothing more (from typing import .. , )
 The answer will be in the following JSON format:
-{"refactored_functions": [{name: "function_name",  arguments: {"arg_1": str,...}}, ...], complexity_score: 0.5, readability_score: 0.5, "import_code": "imports needed for the refactored code"}
+{"refactored_functions": [{name: "function_name",  arguments: {"arg_1": str,...}}, ...], "import_code": "imports needed for the new imports"}
 """
 
 
@@ -112,13 +111,12 @@ def refactor_code(source_code: str):
     elapsed_time_seconds = time.time() - current_time
     print(f"Elapsed time: {elapsed_time_seconds} seconds")
     refactored_functions = result['refactored_functions']
-    complexity_score = result['complexity_score']
-    readability_score = result['readability_score']
+
     print(f"result:\n{result}")
     if result.get('import_code'):
         source_code_with_imports = result['import_code'] + "\n" + source_code
     new_source_code = get_updated_source_code(source_code_with_imports, refactored_functions)
-    return new_source_code, refactored_functions, complexity_score, readability_score
+    return new_source_code, refactored_functions
 
 
 def reformat_code(code: str) -> str:
@@ -149,13 +147,13 @@ def reformat_code(code: str) -> str:
 @web_endpoint(method="POST")
 def refactor_code_web(item: Dict):
     source_code:str = item['source_code']
-    refactored_code, refactored_functions, complexity_score, readability_score = (refactor_code.local(source_code))
+    refactored_code, refactored_functions = (refactor_code.local(source_code))
     reformatted_code = reformat_code(refactored_code)
     from datetime import datetime
     filename_with_date = "refactored_code_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".py"
     with open(f"/data/{filename_with_date}", "w") as file:
         print(f"Writing reformatted code to /data/{filename_with_date}")
         file.write(reformatted_code)
-    return {"reformated_code": reformatted_code, "refactored_functions": refactored_functions, "complexity_score": complexity_score, "readability_score": readability_score, }
+    return {"reformated_code": reformatted_code, "refactored_functions": refactored_functions,}
 
 
