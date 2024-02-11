@@ -10,20 +10,17 @@ import './App.css'
 function App() {
   const [code, setCode] = useState('# Enter your Python code here')
   const [isRefactoring, setIsRefactoring] = useState(false)
+  const [refactoringTime, setRefactoringTime] = useState(0)
 
   const [analysis, setAnalysis] = useState({
     reformated_code: '',
-    refactored_functions: [],
-    complexity_score: 0,
-    readability_score: 0
+    refactored_functions: []
   })
-  const complexity_score = analysis.complexity_score
-  const readability_score = analysis.readability_score
 
   const handleRefactorClick = () => {
-    // Implement your refactor logic here
     setIsRefactoring(true) // Set loading state
-    console.log(code)
+    const startTime = performance.now() // Capture start time
+
     fetch(
       'https://simonmoisselin--refactor-code-v0-refactor-code-web.modal.run',
       {
@@ -36,13 +33,17 @@ function App() {
     )
       .then((res) => res.json())
       .then((data) => {
+        const endTime = performance.now() // Capture end time
+        setRefactoringTime((endTime - startTime) / 1000) // Calculate duration in seconds
         setCode(data.reformated_code)
         setAnalysis(data)
         setIsRefactoring(false) // Unset loading state
       })
       .catch((err) => {
         console.error('Error:', err)
-        setIsRefactoring(false) // Unset loading state
+        setIsRefactoring(false) // Ensure refactoring time is set even on error
+        const endTime = performance.now() // Capture end time on error
+        setRefactoringTime((endTime - startTime) / 1000) // Calculate duration in seconds
       })
 
     console.log('Refactor clicked')
@@ -99,6 +100,9 @@ function App() {
           >
             Copy
           </button>
+          {refactoringTime ? (
+            <p>Refactoring Time: {refactoringTime.toFixed(2)} seconds</p>
+          ) : null}
         </div>
       </div>
     </div>
