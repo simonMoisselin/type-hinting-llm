@@ -1,9 +1,11 @@
-import json
-import openai
-import modal
 import ast
-from modal import Stub, web_endpoint
+import json
 from typing import Dict
+
+import modal
+import openai
+from modal import Stub, web_endpoint
+
 image = modal.Image.debian_slim().pip_install("openai", "black")
 
 APP_NAME = "refactor_code_v0"
@@ -18,7 +20,6 @@ def get_messages(system_content: str, prompt: str):
 
 
 
-
 prompt_format = """
 Help refactor this code:
 {code}
@@ -26,7 +27,7 @@ Help refactor this code:
 system_content = """
 Your goal is to help refactoring some code. You will receive a python file, and your goal is, for each function, add a docstring to explain what this is doing, add typing into the arguments, find a better name for the function. Also I want to know a score for the complexity of the function, and a score for the readability of the function, named complexity_score and readability_score. (between 0 and 1)
 The answer will be in the following JSON format:
-{"refactored_functions": [{original_name: "function_name", docstring: "the docstring", arguments: "the arguments with typing", new_name: "the new name if changing", complexity_score: 0.5, readability_score: 0.5}, ...]}
+{"refactored_functions": [{original_name: "function_name", docstring: "the docstring", arguments: "the arguments with typing", new_name: "the new name if changing", complexity_score: 0.5, readability_score: 0.5}, ...], "code_feedback": "Some feedback about the code in destination of the author. Make a bullet list of things to improve upon"}
 """
 
 
