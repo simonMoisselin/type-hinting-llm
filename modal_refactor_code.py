@@ -23,7 +23,7 @@ def get_messages(system_content: str, prompt: str):
 
 
 prompt_format = "\nHelp refactor this code:\n{code}\n"
-system_content = '\nYour goal is to help refactoring some code. You will receive a python file, the goal is to have type hinting in all methods (functions and class sub methods). Your goal is to only add the missing type hintings args. If the new types you added required new imports, add them to `imports` in the response.\nThe answer will be in the following JSON format:\n{"functions": [{name: "function_or_submethod_name",  args: ["arg_1:int", "arg_2:type_arg_2, ...], ...], "imports": "imports needed for the new imports"}\n\n- Do not add existing functions if they are already typed.\n- Do not forget to add typing for ALL the methods for each class (can have multiple methods per class), by using this syntax: name: Classname.method_name, ...\n'
+system_content = '\nYour goal is to help refactoring some code. You will receive a python file, the goal is to have type hinting in all methods (functions and class sub methods). Your goal is to only add the missing type hintings args. If the new types you added required new imports, add them to `imports` in the response.\nThe answer will be in the following JSON format:\n{"functions": [{name: "function_or_submethod_name",  args: ["arg_1:int", "arg_2:type_arg_2, ...], ...], "imports": "imports needed for the new imports"}\n\n- Do not return existing functions if they are already typed. Only return functions that needs to be typed. REALLY IMPORTANT.\n- Do not forget to add typing for ALL the methods for each class (can have multiple methods per class), by using this syntax: name: Classname.method_name, ...\n'
 import ast
 import logging
 
