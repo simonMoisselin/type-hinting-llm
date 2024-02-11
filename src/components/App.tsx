@@ -113,6 +113,39 @@ function App() {
           {refactoringTime ? (
             <p>Refactoring Time: {refactoringTime.toFixed(2)} seconds</p>
           ) : null}
+
+          {analysis.functions.length ? (
+            <div>
+              {/* tailwind css */}
+              <h2
+                className="
+                text-2xl
+                font-bold
+                text-gray-800
+              "
+              >
+                Functions
+              </h2>
+              <ul
+                className="
+                text-gray-700 
+              "
+              >
+                {analysis.functions.map((func: any) => (
+                  <li
+                    className="
+                      ml-4
+                      list-disc
+                      text-gray-700
+                    "
+                    key={func.name}
+                  >
+                    {func.name}({func.args.join(', ')})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

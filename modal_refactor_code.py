@@ -1,6 +1,7 @@
 import ast
 import json
 import logging
+from datetime import datetime
 from typing import Dict
 
 import modal
@@ -32,7 +33,7 @@ Help refactor this code:
 system_content = """
 Your goal is to help refactoring some code. You will receive a python file, and your goal is, for each function, add typing into the args. If the new types you added required new imports, add them to `imports` in the response.
 The answer will be in the following JSON format:
-{"functions": [{name: "function_name",  args: ["arg_1:int", "arg_2:type_arg_2, ...], "imports": "imports needed for the new imports"}
+{"functions": [{name: "function_name",  args: ["arg_1:int", "arg_2:type_arg_2, ...], ...], "imports": "imports needed for the new imports"}
 
 - If a function is already typed, you can skip it, and not define it in the response.
 """
@@ -57,19 +58,26 @@ class FunctionTransformer(ast.NodeTransformer):
             logging.info(f"Found transformation for function: {node.name}")
             transformed_args = []
 
-            # Handling args as a list of strings
             for arg in transformation['args']:
-                arg_name, arg_type = [x.strip() for x in arg.split(':')]  # Ensure arg_name and arg_type are stripped of leading/trailing spaces
-                try:
-                    arg_node = ast.arg(arg=arg_name, annotation=ast.parse(arg_type, mode='eval').body)
-                    transformed_args.append(arg_node)
-                except SyntaxError as e:
-                    logging.error(f"Syntax error parsing type annotation for argument '{arg_name}': {e}")
-                    raise
+                parts = [x.strip() for x in arg.split(':')]
+                if len(parts) == 2:
+                    arg_name, arg_type = parts
+                    try:
+                        annotation = ast.parse(arg_type, mode='eval').body
+                    except SyntaxError as e:
+                        logging.error(f"Syntax error parsing type annotation for argument '{arg_name}': {e}")
+                        raise
+                elif len(parts) == 1:
+                    arg_name = parts[0]
+                    annotation = None  # No type specified, so no annotation
+                else:
+                    logging.error(f"Invalid argument format: '{arg}'")
+                    continue  # Skip this argument or raise an exception based on your error handling policy
 
-            # Updating the function's args list
+                arg_node = ast.arg(arg=arg_name, annotation=annotation)
+                transformed_args.append(arg_node)
+
             node.args.args = transformed_args
-
             logging.debug(f"Transformation applied successfully to function: {transformation['name']}")
             return node
         else:
@@ -154,7 +162,7 @@ def refactor_code_web(item: Dict):
     source_code:str = item['source_code']
     refactored_code, functions = (refactor_code.local(source_code))
     reformatted_code = reformat_code(refactored_code)
-    from datetime import datetime
+    
     filename_with_date = "refactored_code_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".py"
     with open(f"/data/{filename_with_date}", "w") as file:
         print(f"Writing reformatted code to /data/{filename_with_date}")
