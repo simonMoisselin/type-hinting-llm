@@ -7,14 +7,17 @@ import { python } from '@codemirror/lang-python'
 
 import './App.css'
 
+const startCode = `def add(a, b):
+  return a + b`
+
 function App() {
-  const [code, setCode] = useState('# Enter your Python code here')
+  const [code, setCode] = useState(startCode)
   const [isRefactoring, setIsRefactoring] = useState(false)
   const [refactoringTime, setRefactoringTime] = useState(0)
 
   const [analysis, setAnalysis] = useState({
     reformated_code: '',
-    refactored_functions: []
+    functions: []
   })
 
   const handleRefactorClick = () => {
@@ -99,6 +102,13 @@ function App() {
             className="copy-btn btn rounded bg-green-500 px-4 py-2 font-bold text-white transition-colors duration-300 ease-in-out hover:bg-green-700"
           >
             Copy
+          </button>
+          {/* add a restart button */}
+          <button
+            onClick={() => setCode(startCode)}
+            className="btn rounded bg-red-500 px-4 py-2 font-bold text-white transition-colors duration-300 ease-in-out hover:bg-red-700"
+          >
+            Restart
           </button>
           {refactoringTime ? (
             <p>Refactoring Time: {refactoringTime.toFixed(2)} seconds</p>
