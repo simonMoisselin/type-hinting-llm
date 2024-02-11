@@ -82,7 +82,7 @@ def get_functions(source_code):
     messages = get_messages(system_content, prompt)
     model_name = "gpt-4-0125-preview"
     model_name = "gpt-3.5-turbo-0125"
-    response = openai.chat.completions.create(messages=messages, response_format={"type": "json_object"}, model=model_name)
+    response = openai.chat.completions.create(messages=messages, response_format={"type": "json_object"}, model=model_name, max_tokens=1024)
     data: str = response.choices[0].message.content
     return json.loads(data)
 
