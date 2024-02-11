@@ -10,6 +10,10 @@ import './App.css'
 const startCode = `def add(a, b):
   return a + b`
 
+const MODELS = {
+  GPT3: 'gpt-3.5-turbo-0125',
+  GPT4: 'gpt-4-0125-preview'
+}
 function App() {
   const [code, setCode] = useState(startCode)
   const [isRefactoring, setIsRefactoring] = useState(false)
@@ -25,13 +29,13 @@ function App() {
     const startTime = performance.now() // Capture start time
 
     fetch(
-      'https://simonmoisselin--refactor-code-v0-refactor-code-web.modal.run',
+      'https://simonmoisselin--refactor-code-v1-refactor-code-web.modal.run',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ source_code: code })
+        body: JSON.stringify({ source_code: code, model_name: MODELS.GPT3 })
       }
     )
       .then((res) => res.json())
@@ -76,7 +80,7 @@ function App() {
         Code Refactoring: Python
       </header>
       <div className="flex grow overflow-hidden">
-        <div className="w-4/5">
+        <div className="w-3/5">
           <CodeMirror
             extensions={[python()]}
             value={code}
@@ -87,7 +91,7 @@ function App() {
             className="size-full"
           />
         </div>
-        <div className="flex w-1/5 flex-col items-center justify-start space-y-4 bg-gray-100 p-4">
+        <div className="flex w-2/5 flex-col items-center justify-start space-y-4 bg-gray-100 p-4">
           <button
             onClick={handleRefactorClick}
             className={`btn rounded bg-blue-500 px-4 py-2 font-bold text-white transition-colors duration-300 ease-in-out hover:bg-blue-700 ${
@@ -112,6 +116,49 @@ function App() {
           </button>
           {refactoringTime ? (
             <p>Refactoring Time: {refactoringTime.toFixed(2)} seconds</p>
+          ) : null}
+          <h2
+            className="
+                text-2xl
+                font-bold
+                text-gray-800
+              "
+          >
+            Functions Modified
+          </h2>
+          {analysis.functions.length ? (
+            <div
+              className="
+                max-h-96
+                w-full
+                overflow-y-auto
+                rounded
+                bg-gray-200
+                p-4
+                text-lg
+                text-gray-800
+            "
+            >
+              {/* tailwind css */}
+              <ul
+                className="
+                text-gray-700 
+              "
+              >
+                {analysis.functions.map((func: any) => (
+                  <li
+                    className="
+                      ml-4
+                      list-disc
+                      text-gray-700
+                    "
+                    key={func.name}
+                  >
+                    {func.name}({func.args?.join(', ')})
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : null}
         </div>
       </div>
