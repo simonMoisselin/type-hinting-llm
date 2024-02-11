@@ -77,13 +77,6 @@ function App() {
             onChange={(value) => {
               setCode(value)
             }}
-            options={{
-              mode: 'python',
-              theme: 'material',
-              lineNumbers: true,
-              lineWrapping: true
-              // wrap
-            }}
             height="100%"
             className="size-full"
           />
