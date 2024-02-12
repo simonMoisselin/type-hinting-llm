@@ -183,8 +183,10 @@ def get_updated_source_code(source_code: str, functions: list):
     return new_source_code
 
 
+
 @stub.function(
-    secrets=[modal.Secret.from_name("simon-openai-secrets")], volumes={"/data": vol}
+    secrets=[modal.Secret.from_name("simon-openai-secrets")], volumes={"/data": vol},
+    container_idle_timeout=60*5,
 )
 def refactor_code(source_code: str, model_name: str):
     import time
@@ -224,7 +226,7 @@ def reformat_code(code: str) -> str:
 @web_endpoint(method="POST")
 def refactor_code_web(item: Dict):
     source_code: str = item["source_code"]
-    model_name = item.get("model_name", "gpt-4-0125-preview")
+    model_name = item["model_name"]
     (refactored_code, functions) = refactor_code.local(source_code, model_name)
     reformatted_code = reformat_code(refactored_code)
     filename_with_date = (
@@ -234,3 +236,4 @@ def refactor_code_web(item: Dict):
         print(f"Writing reformatted code to /data/{filename_with_date}")
         file.write(reformatted_code)
     return {"reformated_code": reformatted_code, "functions": functions}
+
